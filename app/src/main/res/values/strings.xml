@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Location Tracker</string>
+
+    <string name="notification_channel_name">Location tracking</string>
+    <string name="notification_channel_desc">Ongoing notification while location tracking is active.</string>
+    <string name="notification_title">Tracking your location</string>
+    <string name="notification_acquiring">Acquiring GPS signal…</string>
+    <string name="notification_stop">Stop</string>
+</resources>

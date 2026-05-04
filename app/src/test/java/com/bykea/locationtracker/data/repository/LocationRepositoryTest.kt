@@ -14,9 +14,11 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -25,16 +27,29 @@ class LocationRepositoryTest {
     private val source: LocationDataSource = mockk()
     private val dao: LocationDao = mockk(relaxed = true)
     private val cache: LastLocationCache = mockk(relaxed = true)
-    private val ioDispatcher = UnconfinedTestDispatcher()
 
-    private val repository = LocationRepository(source, dao, cache, ioDispatcher)
+    @Before
+    fun setUp() {
+        // Default safe stubs so the repository's val properties (which read these
+        // at construction time) always have something to capture.
+        every { dao.observeRecent(any()) } returns flowOf(emptyList())
+        every { cache.lastLocation } returns flowOf(null)
+    }
+
+    private fun TestScope.newRepository() = LocationRepository(
+        source = source,
+        dao = dao,
+        cache = cache,
+        io = UnconfinedTestDispatcher(testScheduler),
+    )
 
     @Test
     fun `trackLocation persists each emission then re-emits it`() = runTest {
         val first = sampleLocation(timestamp = 1L)
         val second = sampleLocation(timestamp = 2L)
         every { source.locationUpdates(any()) } returns flowOf(first, second)
-        coEvery { dao.insert(any()) } returns 1L
+
+        val repository = newRepository()
 
         repository.trackLocation(TrackingConfig.Default).test {
             assertEquals(first, awaitItem())
@@ -55,6 +70,8 @@ class LocationRepositoryTest {
         val cached = sampleLocation()
         every { cache.lastLocation } returns flowOf(cached)
 
+        val repository = newRepository()
+
         repository.cachedLastLocation.test {
             assertEquals(cached, awaitItem())
             awaitComplete()
@@ -69,6 +86,8 @@ class LocationRepositoryTest {
         )
         every { dao.observeRecent(any()) } returns flowOf(entities)
 
+        val repository = newRepository()
+
         repository.recentHistory.test {
             val mapped = awaitItem()
             assertEquals(entities.map { it.toDomain() }, mapped)
@@ -80,6 +99,8 @@ class LocationRepositoryTest {
     fun `fetchLastKnown delegates to source`() = runTest {
         val expected = sampleLocation()
         coEvery { source.lastKnown() } returns expected
+
+        val repository = newRepository()
 
         val actual = repository.fetchLastKnown()
 

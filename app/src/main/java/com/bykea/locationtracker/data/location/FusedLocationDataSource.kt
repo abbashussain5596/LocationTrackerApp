@@ -78,11 +78,8 @@ class FusedLocationDataSource(
         return fine || coarse
     }
 
-    private fun Location.isUsable(thresholdMeters: Float): Boolean {
-        if (!hasAccuracy()) return false
-        if (accuracy <= 0f) return false
-        return accuracy <= thresholdMeters
-    }
+    private fun Location.isUsable(thresholdMeters: Float): Boolean =
+        isLocationUsable(hasAccuracy(), accuracy, thresholdMeters)
 
     private fun Location.toTracked() = TrackedLocation(
         latitude = latitude,

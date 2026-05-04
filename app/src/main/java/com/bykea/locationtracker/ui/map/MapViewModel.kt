@@ -1,10 +1,9 @@
 package com.bykea.locationtracker.ui.map
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bykea.locationtracker.data.repository.LocationRepository
-import com.bykea.locationtracker.service.LocationTrackingService
+import com.bykea.locationtracker.domain.TrackingController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,9 +15,9 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
-    application: Application,
     private val repository: LocationRepository,
-) : AndroidViewModel(application) {
+    private val tracking: TrackingController,
+) : ViewModel() {
 
     private val isTracking = MutableStateFlow(false)
 
@@ -40,12 +39,12 @@ class MapViewModel @Inject constructor(
     )
 
     fun startTracking() {
-        LocationTrackingService.start(getApplication())
+        tracking.start()
         isTracking.value = true
     }
 
     fun stopTracking() {
-        LocationTrackingService.stop(getApplication())
+        tracking.stop()
         isTracking.value = false
     }
 
